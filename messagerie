@@ -6,7 +6,7 @@ $user_id = $_SESSION['user_id'];
 
 $with = intval($_GET['with'] ?? 0);
 
-// Vérification : $with est bien dans mon réseau
+// Vérification de $with est bien dans mon réseau
 $verif = $pdo->prepare("
     SELECT 1 FROM relations WHERE statut='accepte' 
     AND ((id_expediteur=? AND id_destinataire=?) OR (id_expediteur=? AND id_destinataire=?))
