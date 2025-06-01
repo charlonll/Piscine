@@ -26,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['contenu'])) {
     exit;
 }
 
-// Récupérer la discussion (20 derniers messages, ordonnés du plus ancien au plus récent)
 $stmt = $pdo->prepare("
     SELECT m.*, u.pseudo, u.photo 
     FROM messages m 
