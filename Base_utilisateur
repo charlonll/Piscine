@@ -1,0 +1,39 @@
+CREATE DATABASE IF NOT EXISTS gestion_utilisateurs;
+USE gestion_utilisateurs;
+
+CREATE TABLE utilisateurs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pseudo VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    mot_de_passe VARCHAR(255) NOT NULL,
+    nom VARCHAR(50),
+    prenom VARCHAR(50),
+    photo VARCHAR(255),
+    image_fond VARCHAR(255),
+    type ENUM('auteur','admin') DEFAULT 'auteur'
+);
+
+-- Exemples d'utilisateurs (mot de passe en clair !)
+INSERT INTO utilisateurs (pseudo, email, mot_de_passe, nom, prenom, photo, type)
+VALUES
+('arthur', 'arthur@ece.fr', 'arthur123', 'Durand', 'Arthur', 'profils/arthur.png', 'auteur'),
+('sophie', 'sophie@ece.fr', 'sophie123', 'Martin', 'Sophie', 'profils/sophie.png', 'auteur'),
+('amine', 'amine@ece.fr', 'amine123', 'Ziani', 'Amine', 'img/profils/amine.jpg', 'auteur'),
+('julie', 'julie@ece.fr', 'julie123', 'Petit', 'Julie', 'img/profils/julie.jpg', 'auteur'),
+('charles', 'charles@ece.fr', 'charles123', 'Novella', 'Charles', 'img/profils/charles.jpg', 'auteur'),
+('ines', 'ines@ece.fr', 'ines123', 'Dupont', 'Ines', 'img/profils/ines.jpg', 'auteur'),
+('admin', 'admin@ece.fr', 'admin123', 'Administrateur', 'Super', 'img/profils/admin.jpg', 'admin');
+
+
+CREATE TABLE posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    type ENUM('evenement','photo','video','texte') NOT NULL,
+    fichier VARCHAR(255),
+    description TEXT,
+    lieu VARCHAR(255),
+    date_event DATETIME,
+    humeur VARCHAR(100),
+    visibilite ENUM('public','reseau','selection') DEFAULT 'public',
+    selection_amis TEXT
+);
