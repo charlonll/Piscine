@@ -17,7 +17,6 @@ if (!$verif->fetch()) {
     exit;
 }
 
-// Envoi de messages
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['contenu'])) {
     $contenu = trim($_POST['contenu']);
     if ($contenu != "") {
