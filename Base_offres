@@ -1,0 +1,23 @@
+
+CREATE TABLE offres (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255),
+    description TEXT,
+    type ENUM('stage','emploi','alternance'),
+    entreprise VARCHAR(255),
+    date_publication DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Quelques offres d’exemple
+INSERT INTO offres (titre, description, type, entreprise)
+VALUES
+('Stage Développeur Web', 'Stage de 6 mois sur Paris pour développement web fullstack PHP/JS', 'stage', 'WebTech'),
+('Alternance Ingénieur IA', 'Alternance IA en apprentissage pour start-up innovante.', 'alternance', 'AIStartup'),
+('CDI Ingénieur Réseau', 'CDI ingénieur réseaux, expérience 2 ans minimum.', 'emploi', 'TelecomCorp'),
+('Stage Data Analyst', 'Analyse de données Big Data, outils Python/R, durée 5 mois.', 'stage', 'DataGroup');
+
+CREATE TABLE ignores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_user INT NOT NULL,
+    id_ignored INT NOT NULL
+);
