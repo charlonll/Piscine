@@ -1,0 +1,22 @@
+<?php
+require 'config.php';
+
+// Vérifier si un admin existe déjà (email ou pseudo)
+$stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE pseudo = ? OR email = ?");
+$stmt->execute(['admin', 'admin@ece.fr']);
+$existe = $stmt->fetch();
+
+if ($existe) {
+    echo "⚠️ Un utilisateur admin existe déjà avec ce pseudo ou email.<br>";
+} else {
+    $hash = password_hash('admin', PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare("INSERT INTO utilisateurs (pseudo, email, mot_de_passe, nom, type) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute(['admin', 'admin@ece.fr', $hash, 'Administrateur', 'admin']);
+    echo "✅ Admin créé avec succès !<br>";
+    echo "Identifiants :<br>Pseudo : <b>admin</b><br>Email : <b>admin@ece.fr</b><br>Mot de passe : <b>admin</b><br>";
+}
+
+// Optionnel : suppression automatique du script pour la sécurité
+unlink(__FILE__);
+echo "<br>Ce script vient d'être supprimé pour la sécurité.";
+?>
