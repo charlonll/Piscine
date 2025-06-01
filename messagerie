@@ -1,0 +1,96 @@
+<?php
+include 'header.php';
+require 'config.php';
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+$user_id = $_SESSION['user_id'];
+
+$with = intval($_GET['with'] ?? 0);
+
+// Vérification : $with est bien dans mon réseau
+$verif = $pdo->prepare("
+    SELECT 1 FROM relations WHERE statut='accepte' 
+    AND ((id_expediteur=? AND id_destinataire=?) OR (id_expediteur=? AND id_destinataire=?))
+");
+$verif->execute([$user_id, $with, $with, $user_id]);
+if (!$verif->fetch()) {
+    echo "Accès refusé";
+    exit;
+}
+
+// Envoi d’un message
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['contenu'])) {
+    $contenu = trim($_POST['contenu']);
+    if ($contenu != "") {
+        $stmt = $pdo->prepare("INSERT INTO messages (expediteur_id, destinataire_id, contenu, date_message) VALUES (?, ?, ?, NOW())");
+        $stmt->execute([$user_id, $with, $contenu]);
+    }
+    header("Location: discussion.php?with=$with");
+    exit;
+}
+
+// Récupérer la discussion (20 derniers messages, ordonnés du plus ancien au plus récent)
+$stmt = $pdo->prepare("
+    SELECT m.*, u.pseudo, u.photo 
+    FROM messages m 
+    JOIN utilisateurs u ON m.expediteur_id = u.id 
+    WHERE (expediteur_id=? AND destinataire_id=?) OR (expediteur_id=? AND destinataire_id=?)
+    ORDER BY date_message ASC
+    LIMIT 50
+");
+$stmt->execute([$user_id, $with, $with, $user_id]);
+$messages = $stmt->fetchAll();
+
+// Infos du destinataire
+$dest = $pdo->prepare("SELECT pseudo, nom, prenom, photo FROM utilisateurs WHERE id=?");
+$dest->execute([$with]);
+$contact = $dest->fetch();
+$contact_nom = htmlspecialchars(trim($contact['prenom'].' '.$contact['nom']));
+$contact_pseudo = htmlspecialchars($contact['pseudo']);
+$contact_photo = !empty($contact['photo']) ? htmlspecialchars($contact['photo']) : 'default_avatar.png';
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discussion avec <?= $contact_nom ?></title>
+    <style>
+        body { font-family:Arial,sans-serif; background:#f6f8fa;}
+        .discussion-container { max-width:700px; margin:40px auto; background:#fff; border-radius:12px; box-shadow:0 0 10px #d3d9e6; padding:30px;}
+        .message-row { margin-bottom:15px; }
+        .my-msg { text-align:right; }
+        .msg-content { display:inline-block; background:#e5f1fb; padding:8px 16px; border-radius:10px; margin-bottom:2px;}
+        .from-me .msg-content { background:#2176ae; color:#fff;}
+        .avatar { width:28px; height:28px; border-radius:50%; object-fit:cover; vertical-align:middle;}
+        .msg-meta { color:#888; font-size:0.93em; }
+        .send-form { margin-top:24px; display:flex; gap:10px;}
+        textarea { flex:1; min-height:38px; resize:vertical;}
+        button { padding:7px 24px; background:#2176ae; color:#fff; border-radius:8px; border:none; }
+        .contact-header { display:flex; align-items:center; gap:14px; margin-bottom:22px;}
+    </style>
+</head>
+<body>
+<div class="discussion-container">
+    <div class="contact-header">
+        <img src="<?= $contact_photo ?>" class="avatar">
+        <div>
+            <div style="font-weight:bold;"><?= $contact_nom ?> <span style="color:#888">(<?= $contact_pseudo ?>)</span></div>
+            <div style="font-size:0.97em;color:#aaa;">Discussion privée</div>
+        </div>
+    </div>
+    <?php foreach ($messages as $msg): 
+        $from_me = $msg['expediteur_id'] == $user_id;
+        $msg_photo = !empty($msg['photo']) ? htmlspecialchars($msg['photo']) : 'default_avatar.png';
+    ?>
+        <div class="message-row <?= $from_me ? 'from-me my-msg' : '' ?>">
+            <?php if(!$from_me): ?><img src="<?= $msg_photo ?>" class="avatar"><?php endif; ?>
+            <div class="msg-content"><?= nl2br(htmlspecialchars($msg['contenu'])) ?></div>
+            <?php if($from_me): ?><img src="<?= $msg_photo ?>" class="avatar"><?php endif; ?>
+            <div class="msg-meta"><?= htmlspecialchars($msg['pseudo']) ?> - <?= htmlspecialchars($msg['date_message']) ?></div>
+        </div>
+    <?php endforeach; ?>
+    <form method="post" class="send-form">
+        <textarea name="contenu" placeholder="Votre message..." required></textarea>
+        <button type="submit">Envoyer</button>
+    </form>
+</div>
+</body>
+</html>
