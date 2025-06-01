@@ -1,0 +1,48 @@
+<?php
+include 'header.php';
+require 'config.php';
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offres d'emploi</title>
+    <style>
+        body { font-family:Arial, sans-serif; background:#f6f8fa; margin:0; }
+        .offres-container { max-width:700px; margin:40px auto; }
+        .offre { background:#fff; border-radius:10px; box-shadow:0 0 8px #d7dbe4; padding:18px; margin-bottom:18px;}
+        .offre h3 { margin:0 0 10px 0; }
+        .offre .meta { color:#888; font-size:0.98em; }
+        .offre .type { color:#3498db; }
+        .offre .btn { margin-top:12px; border:none; background:#2176ae; color:#fff; padding:7px 14px; border-radius:6px; cursor:pointer; }
+    </style>
+</head>
+<body>
+
+<div class="offres-container">
+    <h2>Offres d'emploi, stage et alternance</h2>
+    <?php
+    $stmt = $pdo->query("SELECT * FROM offres ORDER BY date_publication DESC");
+    foreach($stmt as $offre):
+    ?>
+        <div class="offre">
+            <h3><?= htmlspecialchars($offre['titre']) ?></h3>
+            <div class="meta"><?= htmlspecialchars($offre['entreprise']) ?> —
+                <span class="type"><?= htmlspecialchars($offre['type']) ?></span>
+                | Publiée le <?= date('d/m/Y', strtotime($offre['date_publication'])) ?>
+            </div>
+            <div style="margin-top:7px;"><?= nl2br(htmlspecialchars($offre['description'])) ?></div>
+            <!-- Boutons -->
+            <form method="post" action="postuler_offre.php" style="display:inline;">
+                <input type="hidden" name="offre_id" value="<?= $offre['id'] ?>">
+                <button type="submit" class="btn">Postuler</button>
+            </form>
+            <form method="post" action="message_entreprise.php" style="display:inline;">
+                <input type="hidden" name="offre_id" value="<?= $offre['id'] ?>">
+                <button type="submit" class="btn" style="background:#26a65b;">Contacter</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
+</div>
+</body>
+</html>
