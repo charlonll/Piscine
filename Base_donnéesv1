@@ -1,0 +1,77 @@
+CREATE DATABASE IF NOT EXISTS gestion_utilisateurs;
+USE gestion_utilisateurs;
+
+CREATE TABLE utilisateurs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pseudo VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    mot_de_passe VARCHAR(255) NOT NULL,
+    nom VARCHAR(50),
+    prenom VARCHAR(50),
+    photo VARCHAR(255),
+    image_fond VARCHAR(255),
+    type ENUM('auteur','admin') DEFAULT 'auteur'
+);
+
+CREATE TABLE posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    type ENUM('evenement','photo','video','texte') NOT NULL,
+    fichier VARCHAR(255),
+    description TEXT,
+    lieu VARCHAR(255),
+    date_event DATETIME,
+    humeur VARCHAR(100),
+    visibilite ENUM('public','reseau','selection') DEFAULT 'public',
+    selection_amis TEXT
+);
+
+CREATE TABLE relations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_expediteur INT NOT NULL, -- Celui qui invite
+    id_destinataire INT NOT NULL, -- Celui qui reçoit
+    statut ENUM('en_attente','accepte','refuse') NOT NULL DEFAULT 'en_attente',
+    date_action DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO relations (id_expediteur, id_destinataire, statut)
+VALUES
+(1, 2, 'en_attente'),  
+(3, 4, 'en_attente'); 
+
+CREATE TABLE likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    utilisateur_id INT NOT NULL
+);
+
+CREATE TABLE commentaires (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    utilisateur_id INT NOT NULL,
+    texte TEXT NOT NULL,
+    date_commentaire DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    expediteur_id INT NOT NULL,
+    destinataire_id INT NOT NULL,
+    contenu TEXT NOT NULL,
+    date_message DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE offres (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255),
+    description TEXT,
+    type ENUM('stage','emploi','alternance'),
+    entreprise VARCHAR(255),
+    date_publication DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE ignores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_user INT NOT NULL,
+    id_ignored INT NOT NULL
+);
