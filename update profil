@@ -1,0 +1,185 @@
+<?php
+session_start();
+require 'config.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$msg = "";
+
+// Récupérer l'utilisateur
+$stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE id=?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
+
+// --- Mise à jour des infos personnelles ---
+if (isset($_POST['update_info'])) {
+    $new_pseudo = trim($_POST['pseudo']);
+    $new_email = trim($_POST['email']);
+    $new_nom = trim($_POST['nom']);
+    $new_password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    // Vérifier que le pseudo/email ne sont pas déjà pris par quelqu’un d’autre
+    $check = $pdo->prepare("SELECT id FROM utilisateurs WHERE (pseudo=? OR email=?) AND id<>?");
+    $check->execute([$new_pseudo, $new_email, $user_id]);
+    if ($check->fetch()) {
+        $msg = "Pseudo ou email déjà utilisé par un autre utilisateur.";
+    } else {
+        if ($new_password || $confirm_password) {
+            // Si changement de mot de passe demandé
+            if ($new_password !== $confirm_password) {
+                $msg = "Les deux mots de passe ne correspondent pas.";
+            } elseif (strlen($new_password) < 4) {
+                $msg = "Le mot de passe est trop court.";
+            } else {
+                $hash = password_hash($new_password, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("UPDATE utilisateurs SET pseudo=?, email=?, nom=?, mot_de_passe=? WHERE id=?");
+                $stmt->execute([$new_pseudo, $new_email, $new_nom, $hash, $user_id]);
+                $msg = "Données et mot de passe mis à jour !";
+                $_SESSION['pseudo'] = $new_pseudo;
+            }
+        } else {
+            // Changement des infos sans mot de passe
+            $stmt = $pdo->prepare("UPDATE utilisateurs SET pseudo=?, email=?, nom=? WHERE id=?");
+            $stmt->execute([$new_pseudo, $new_email, $new_nom, $user_id]);
+            $msg = "Données personnelles mises à jour !";
+            $_SESSION['pseudo'] = $new_pseudo;
+        }
+        // Rafraîchir les données utilisateur
+        $stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE id=?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
+    }
+}
+
+// --- Upload photo de profil ---
+if (isset($_POST['upload_profil'])) {
+    if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0) {
+        $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (in_array($ext, $allowed)) {
+            $file_name = "profil_" . $user_id . "_" . time() . "." . $ext;
+            $dest = "uploads/" . $file_name;
+            if (move_uploaded_file($_FILES['photo']['tmp_name'], $dest)) {
+                $stmt = $pdo->prepare("UPDATE utilisateurs SET photo=? WHERE id=?");
+                $stmt->execute([$dest, $user_id]);
+                $msg = "Photo de profil mise à jour !";
+                $user['photo'] = $dest;
+            } else {
+                $msg = "Erreur lors de l'upload de la photo.";
+            }
+        } else {
+            $msg = "Format de fichier non autorisé.";
+        }
+    } else {
+        $msg = "Aucun fichier sélectionné.";
+    }
+}
+
+// --- Upload image de fond ---
+if (isset($_POST['upload_fond'])) {
+    if (isset($_FILES['image_fond']) && $_FILES['image_fond']['error'] === 0) {
+        $ext = strtolower(pathinfo($_FILES['image_fond']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (in_array($ext, $allowed)) {
+            $file_name = "fond_" . $user_id . "_" . time() . "." . $ext;
+            $dest = "uploads/" . $file_name;
+            if (move_uploaded_file($_FILES['image_fond']['tmp_name'], $dest)) {
+                $stmt = $pdo->prepare("UPDATE utilisateurs SET image_fond=? WHERE id=?");
+                $stmt->execute([$dest, $user_id]);
+                $msg = "Image de fond mise à jour !";
+                $user['image_fond'] = $dest;
+            } else {
+                $msg = "Erreur lors de l'upload de l'image de fond.";
+            }
+        } else {
+            $msg = "Format de fichier non autorisé.";
+        }
+    } else {
+        $msg = "Aucun fichier sélectionné.";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modifier mon profil</title>
+    <style>
+        body { background: #f8f8f8; font-family: Arial, sans-serif; }
+        .container { max-width: 450px; margin: 55px auto; background: #fff; border-radius: 16px; box-shadow: 0 0 18px #bbb; padding: 35px; }
+        h2 { text-align: center; margin-bottom: 28px; }
+        .avatar, .fond { display:block; margin: 0 auto 13px auto; border-radius: 16px; box-shadow: 0 0 8px #aaa; }
+        .avatar { width: 110px; height: 110px; object-fit: cover; border-radius: 50%; }
+        .fond { width: 100%; height: 90px; object-fit: cover;}
+        .form-group { margin-bottom: 18px; }
+        input[type=file], input[type=text], input[type=email], input[type=password] { margin-bottom: 10px; width: 96%; padding: 7px;}
+        input[type=submit], button { padding: 7px 18px; border-radius: 10px; border: none; background: #337ab7; color: #fff; cursor: pointer; }
+        input[type=submit]:hover, button:hover { background: #23527c; }
+        .msg { text-align:center; margin-bottom:15px; color: #16a085; font-weight: bold; }
+        .back { display:block; text-align:center; margin-top:22px;}
+        .titre-bloc { font-size: 1.1em; margin-bottom: 4px; margin-top: 15px; color: #444;}
+        label { font-weight: bold;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Modifier mon profil</h2>
+    <?php if($msg): ?><div class="msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
+
+    <!-- Bloc modification infos perso -->
+    <div class="form-group">
+        <div class="titre-bloc">Données personnelles</div>
+        <form method="post">
+            <label for="pseudo">Pseudo :</label><br>
+            <input type="text" name="pseudo" id="pseudo" required value="<?= htmlspecialchars($user['pseudo']) ?>"><br>
+            <label for="email">Email :</label><br>
+            <input type="email" name="email" id="email" required value="<?= htmlspecialchars($user['email']) ?>"><br>
+            <label for="nom">Nom :</label><br>
+            <input type="text" name="nom" id="nom" value="<?= htmlspecialchars($user['nom']) ?>"><br>
+            <label for="password">Nouveau mot de passe :</label><br>
+            <input type="password" name="password" id="password" placeholder="Laisser vide pour ne pas changer"><br>
+            <label for="confirm_password">Confirmer mot de passe :</label><br>
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Laisser vide pour ne pas changer"><br>
+            <input type="submit" name="update_info" value="Enregistrer les modifications">
+        </form>
+    </div>
+
+    <!-- Bloc photo de profil -->
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <div class="titre-bloc">Photo de profil actuelle :</div>
+            <?php if (!empty($user['photo'])): ?>
+                <img src="<?= htmlspecialchars($user['photo']) ?>" class="avatar" alt="Photo de profil">
+            <?php else: ?>
+                <span>[Aucune photo]</span>
+            <?php endif; ?><br>
+            <input type="file" name="photo" accept="image/*">
+            <br>
+            <input type="submit" name="upload_profil" value="Changer la photo de profil">
+        </div>
+    </form>
+
+    <!-- Bloc image de fond -->
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <div class="titre-bloc">Image de fond actuelle :</div>
+            <?php if (!empty($user['image_fond'])): ?>
+                <img src="<?= htmlspecialchars($user['image_fond']) ?>" class="fond" alt="Image de fond">
+            <?php else: ?>
+                <span>[Aucune image de fond]</span>
+            <?php endif; ?><br>
+            <input type="file" name="image_fond" accept="image/*">
+            <br>
+            <input type="submit" name="upload_fond" value="Changer l'image de fond">
+        </div>
+    </form>
+
+    <a href="mur.php" class="back">⬅️ Retour au mur</a>
+</div>
+</body>
+</html>
