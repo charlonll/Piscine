@@ -1,0 +1,12 @@
+<?php
+session_start();
+if (!isset($_SESSION['type']) || $_SESSION['type'] != 'admin') {
+    header('Location: index.php');
+    exit;
+
+require 'config.php';
+$hash = password_hash('admin', PASSWORD_DEFAULT);
+$stmt = $pdo->prepare("INSERT INTO utilisateurs (pseudo, email, mot_de_passe, nom, type) VALUES (?, ?, ?, ?, ?)");
+$stmt->execute(['admin', 'admin@ece.fr', $hash, 'Administrateur', 'admin']);
+echo "Admin créé";
+?>
